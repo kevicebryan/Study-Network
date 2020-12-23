@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-clock_t begin = clock();
+
 struct Node{
   char name[255];
   char password[255];
@@ -74,6 +74,7 @@ void exitMenu(){
 void loginMenu();
 
 void menu(){
+  clock_t begin = clock();
   while(1){
     cls();// ini cls buat clear screen doang kok, functionny ada diatas
     puts("Oo==========================================oO");
@@ -112,6 +113,12 @@ void menu(){
     } 
       else if (choose == 4){ //--> ini ngetest buat masuk ke login menu doang
        loginMenu();
+       clock_t end = clock();
+       double timeUsed = (double) (end-begin)/CLOCKS_PER_SEC;
+       printf ("You Have Used Our Application for %.2lf second\nPress Any Key to Return...",timeUsed*3600);
+       char c;
+       scanf ("%c", &c);
+       getchar();
      }
   }
 }
@@ -152,12 +159,6 @@ void loginMenu(){
     } else if ( c == 5 ){
 
     } else if ( c == 6 ){
-      clock_t end = clock();
-      double timeUsed = (double) (end-begin)/CLOCKS_PER_SEC;
-      printf ("You Have Used Our Application for %lf second\nPress Any Key to Return...",timeUsed);
-      char c;
-      scanf ("%c", &c);
-      getchar();
       return;
     }
 
@@ -166,7 +167,7 @@ void loginMenu(){
 }
 
 int main(){
-  //pushTail("Denny","Denny123",1); --> ini ngetest doang, kalo mau cek uncommand deh
+  pushTail("Denny","Denny123",1); //--> ini ngetest doang, kalo mau cek uncommand deh
   menu();
   return 0;
 }
