@@ -1,14 +1,16 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
 #include <ctype.h>
 
-struct NodeComment{
-	int like = 0;
-	char comment[255];
-  int time = 0;//udh sorted based on newest entry, jika like sama
-	NodeComment *next, *prev;
-}*headcomment, *tailcomment;
+struct UserNode{
+  char name[255];
+  char password[255];
+  int no;
+  UserNode *next,*prev;
+}*userhead,*usertail,*usercurr;
+
 
 int filter(char str[]){
 	int len = strlen(str);
@@ -20,115 +22,291 @@ int filter(char str[]){
 	return -1;
 }
 
-//Create Node Buat Comment (ordered by likes)
-struct NodeComment* createComment( const char *comm, int likes){
-    NodeComment *temp = (NodeComment*)malloc(sizeof(NodeComment));
-    strcpy (temp->comment, comm);
-    temp->like = likes;
-    temp->time = 0;
-    temp->next = temp->prev = NULL;
-    return temp;
+
+//gw buat struct buat nampilin username yang udah ada
+UserNode *createNode (const char *name, const char *password, int no){
+  UserNode *newNode = (UserNode*)malloc(sizeof(UserNode));
+  strcpy(newNode->name,name);
+  strcpy(newNode->password,password);
+  newNode->no = no;
+  newNode->next = newNode->prev = NULL;
+  return newNode;
 }
 
-
-void pushHeadComment(const char *comm, int likes){
-  NodeComment *temp = createComment(comm, likes);
-  if (!headcomment){
-    headcomment = tailcomment = temp;
-  }else{
-    headcomment->prev = temp;
-    temp->next = headcomment;
-    headcomment = temp;
-  }
-}
-
-void pushTailComment(const char *comm, int likes){
-  NodeComment *temp = createComment(comm, likes);
-  if (!headcomment){
-    headcomment = tailcomment = temp;
-  }else{
-    temp->prev = tailcomment;
-    tailcomment->next = temp;
-    tailcomment = temp;
+void pushUserHead(const char *name,const char *pass,int no){
+  UserNode *temp = createNode(name,pass,no);
+  if(!userhead){
+    userhead = usertail = temp;
+  } else {
+    temp->next = userhead;
+    userhead->prev = temp;
+    userhead = temp;
   }
 }
 
+void pushUserTail(const char *name,const char *pass, int no){
+  UserNode *temp = createNode(name,pass,no);
+  if(!userhead){
+    userhead = usertail = temp;
+  } else {
+    temp->prev = usertail;
+    usertail->next = temp;
+    usertail = temp;
+  }
+}
 
-void pushMidComment(const char *comm, int likes){
-  NodeComment *temp = createComment(comm, likes);
-  if (!headcomment){
-    headcomment = tailcomment = temp;
-  }
-  else if (likes >= headcomment->like){//Comment Terbaru yang like sama duluan
-    pushHeadComment(comm, likes);
-  }
-  else if (likes < tailcomment->like){//Ngebug disini
-    pushTailComment(comm, likes);
-  }
-  else{
-    NodeComment *curr = headcomment;
-    while (curr!= NULL && likes < curr->like){
-      curr = curr->next;
+void pushUserMid(const char *name,const char *pass, int no){
+  UserNode *temp = createNode(name,pass,no);
+  if(!userhead){
+    userhead = usertail = temp;
+  } else if (strcmp(name,userhead->name) < 0){
+    pushUserHead(name,pass,no);
+  } else if (strcmp(name,usertail->name) > 0){
+    pushUserTail(name,pass,no);
+  } else {
+    UserNode *usercurr = userhead;
+    while(strcmp(name, usercurr->name) > 0){
+      usercurr = usercurr->next;
     }
-    temp->prev = curr->prev;
-    temp->next = curr;
-    curr->prev->next = temp;
-    curr->prev = temp;
+    temp->prev = usercurr->prev;
+    temp->next = usercurr;
+    temp->prev->next = temp;
+    usercurr->prev = temp;
   }
 }
 
-//Validasi Comment beserta scan Comment
-void WriteComment(){
-	puts("[O] Leave a Comment (1-255 Alphanumeric)");
-	char str[500];
-	int flag = 1;
-	while ( flag == 1){
-		scanf("%[^\n]", str);
-		getchar();
-		if ( strlen(str)>255){
-			puts("[X] Comment too Long, Please Re-enter Comment!");
-			flag = 1;
-		}
-		else if (filter(str) == 1){
-			puts("[X] Your Comment Contains Non Alphanumeric Characters, Please Re-enter Comment!");
-			flag = 1;
-		}
-		else{
-			flag = 0;
-		}
-	}
-  int likes = 0;
-  puts("[V] Comment Registered!, How many Likes would you like to give?");
-    scanf("%d", &likes);
+void menu();
+void loginMenu();
+//Fungsi Validasi Registrasi
+void Regis(){
+  char tempusername[255];
+  char temppassword[255];
+  int flagregis = 1;
+  int flagada = 0;
+  int flagabort = 0;
+  int flagpassword = 1;
+  int tempno = 1;
+  UserNode *checknode = userhead;
+  while ( flagregis == 1){
+    puts("Username (lowercase 1-24char): ");
+    scanf("%[^\n]", tempusername);
     getchar();
-	printf("[V] Uploaded: %s\n", str);
-  printf("[V] With %d <3\n",likes);
-  pushMidComment(str, likes);
+    if (strcmp(tempusername, "0") == 0){//0 to abort
+      flagregis = 0;
+      flagabort = 1;
+        menu();//return ke menu
+    }
+    if (flagabort == 0){
+      while (userhead){
+       if (strcmp(tempusername, checknode->name)==0){
+          puts("[X] Sorry, Username taken!");
+         flagada = 1;
+          break;
+        }
+        checknode = checknode->next;
+        tempno++;
+      }
+    }
+    if (flagabort == 0 && flagada == 0 && strlen(tempusername)<=24 && filter(tempusername) == -1){
+      flagregis = 0;
+      puts("[V] Username OK, Insert Password!");
+    }else{
+      puts("[X] Username TooLong and/or Contains Non AlphaNum");
+    }
+  }   
+  while (flagpassword == 1 && flagregis == 0){
+      printf("Password: ");
+      scanf("%[^\n]", temppassword);
+      getchar();
+      if (strcmp(temppassword, "0")==0){
+        flagabort = 1;
+        flagpassword = 0;
+        menu();//return ke  menu();
+      }
+      if (flagabort == 0 && strlen(temppassword)<= 24 && filter(temppassword)== -1){
+        flagpassword = 0;
+      }else{
+        puts("[X] Please re-enter Password (1-24 Char) Alphanumeric");
+      }
+  }
+  if (flagpassword == 0 & flagregis == 0){//No Kesalahan baru masukkan
+    pushUserMid(tempusername, temppassword, tempno);
+    puts("[V] Username & Password Registered");
+    int any;
+    puts("Enter any number to return to menu!");
+    scanf("%d", &any);
+    getchar();
+    menu();
+  }
+
 }
 
-void printCommentLinkedList(){
-  if(!headcomment){
-    puts("No Comments!");
-    return;
+//Fungsi Validasi Login
+void Login(){
+  char tempname[255];
+  char temppass[255];
+  int flaglogin = 1;
+  int flagada = 0;
+  int flagabort = 0;
+  int flagpassword = 1;
+  UserNode *testlogin = userhead;
+  while(flaglogin == 1){
+    printf("Username: ");
+    scanf("%[^\n]", tempname);
+    getchar();
+    if (strcmp(tempname, "0")==0){//Checking Abort
+      flagabort = 1;
+      flaglogin = 0;
+      menu();
+    }
+    if (flagabort == 0){
+      while (testlogin){
+        if (strcmp (testlogin->name, tempname)== 0){//Checking Username
+          flagada = 1;
+          break;
+        }
+       testlogin = testlogin->next;
+      }
+    }
+     if (flagabort = 0 && flagada == 0){
+      puts("[X] Invalid Username, Try Again!");
+    }
   }
-  NodeComment *curr = headcomment;
-  puts("Comments:");
-  while (curr){
-    printf("%d <3 :: %s\n", curr->like, curr->comment);
-    curr = curr->next;
+ 
+  if (flagabort == 0 && flagada == 1 && flaglogin == 0){
+      while(flagpassword = 1){
+        printf("Passowrd: ");
+        scanf("%[^\n]",temppass);
+        getchar();
+        if (strcmp(temppass, "0")==0){//Checking abort
+          flagabort = 1;
+          menu();
+        }
+
+        if (strcmp(temppass, testlogin->password)==0){
+          flagpassword = 0;//password benar!
+        }else{
+          puts("[X] Wrong Password, try Again!");
+        }
+      }
   }
-  puts("===========");
+  if (flaglogin == 0 && flagpassword == 0){//Jadikan CurrUser
+    usercurr = testlogin;
+    loginMenu();
+  }
 }
 
-int main (){
-	WriteComment();
-  printf("tail: %d %s\n", tailcomment->like, tailcomment->comment);
-  printCommentLinkedList();
-  WriteComment();
-  printf("tail: %d %s\n", tailcomment->like, tailcomment->comment);
-  printCommentLinkedList();
-  WriteComment();
-  printf("tail: %d %s\n", tailcomment->like, tailcomment->comment);
-  printCommentLinkedList();
-	return 0;
+
+void cls(){
+  for(int i = 0 ; i < 32 ; i++){
+    puts("");
+  }
+}
+
+void exitMenu(){
+  exit(0);
+}
+
+void loginMenu();
+
+void menu(){
+  clock_t begin = clock();
+  while(1){
+    cls();// ini cls buat clear screen doang kok, functionny ada diatas
+    puts("Oo==========================================oO");
+    puts("                   STUDY NETWORK              ");
+    puts("Oo==========================================oO");
+    puts("");
+    puts("[All User]");
+    puts("");
+    printf ("No.  ");
+    printf ("Username\n");// dibagian sini butuh data jadi gw sedian struct dl aja ya, kalo salah ganti aja oke? wkwkw
+    usercurr = userhead;
+    while(usercurr){
+      printf ("%-4d %-10s\n",usercurr->no,usercurr->name);
+      usercurr = usercurr->next;
+    }
+    puts("");
+    puts("---------------------------");
+    puts("[1] Register");
+    puts("[2] Login");
+    puts("[3] Exit");
+    puts("---------------------------");
+    puts("Press 0 and enter to abort an operation");
+    puts("---------------------------");
+    printf (">> ");
+    int choose;
+    scanf ("%d", &choose);
+    getchar();
+    puts("---------------------------");
+    if(choose == 1){
+    Regis();
+    } else if(choose == 2){ // lanjutin dari sini aja functionnya
+    Login();
+    } else if(choose == 3){
+      exitMenu();
+    } else if(choose == 0){
+      exitMenu();
+    } 
+      else if (choose == 4){ //--> ini ngetest buat masuk ke login menu doang
+       loginMenu();
+       clock_t end = clock();
+       double timeUsed = (double) (end-begin)/CLOCKS_PER_SEC;
+       printf ("You Have Used Our Application for %.2lf second\nPress Any Key to Return...",timeUsed*3600);
+       char c;
+       scanf ("%c", &c);
+       getchar();
+     }
+  }
+}
+
+void loginMenu(){
+  time_t t;
+  time(&t);
+  while(1){
+    cls();
+    puts   ("Oo==========================================oO");
+    printf ("Welcome,              \n");// ini gw blm bisa lanjutin soalnya perlu nama setelah login
+    puts   ("Oo==========================================oO");
+    printf ("Logged in: %s\n",ctime(&t));
+    puts("---------------------------");
+    puts("");
+    printf ("[All Friends of \n");// ini gw jg blm bisa lanjutin, harus setelah login
+    puts("---------------------------");
+    puts("          >>Menu<<         ");
+    puts("---------------------------");
+    puts("[1] Add Friend");
+    puts("[2] Remove Friend");
+    puts("[3] View Inbox");
+    puts("[4] View Sent Requests");
+    puts("[5] Add Edit, Announce, Delete Note");
+    puts("[6] Logout");
+    puts("---------------------------");
+    printf (">> ");
+    int c;
+    scanf ("%d", &c);
+    if(c == 1){
+
+    } else if( c == 2 ){
+
+    } else if( c == 3 ){
+
+    } else if ( c == 4 ){
+
+    } else if ( c == 5 ){
+
+    } else if ( c == 6 ){
+      return;
+    }
+
+    puts("---------------------------");
+  }
+}
+
+int main(){
+  // pushTail("Denny","Denny123",1); //--> ini ngetest doang, kalo mau cek uncommand deh
+  // menu();
+  Regis();
+
+  return 0;
 }
